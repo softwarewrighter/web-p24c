@@ -7,7 +7,7 @@ use config::{PVM_BINARY, label_addr};
 use cor24_emulator::EmulatorCore;
 use demos::{DEMOS, RUNTIME_SPC};
 use gloo::timers::callback::Timeout;
-use web_sys::{HtmlInputElement, HtmlSelectElement};
+use web_sys::{HtmlElement, HtmlInputElement, HtmlSelectElement};
 use yew::prelude::*;
 
 const BATCH_SIZE: u64 = 50_000;
@@ -62,6 +62,7 @@ pub struct App {
     uart_input: String,
     uart_rx_queue: VecDeque<u8>,
     _tick_handle: Option<Timeout>,
+    output_ref: NodeRef,
     pending_code_base: Option<u32>,
     vm_state_addr: u32,
     vm_loop_addr: u32,
@@ -256,6 +257,7 @@ impl Component for App {
             uart_input: String::new(),
             uart_rx_queue: VecDeque::new(),
             _tick_handle: None,
+            output_ref: NodeRef::default(),
             pending_code_base: None,
             vm_state_addr: label_addr("vm_state"),
             vm_loop_addr: label_addr("vm_loop"),
@@ -346,6 +348,7 @@ impl Component for App {
 
             Msg::ToggleSwitch => {
                 self.switch_on = !self.switch_on;
+                self.emulator.set_button_pressed(self.switch_on);
                 true
             }
 
@@ -369,6 +372,12 @@ impl Component for App {
                 }
                 false
             }
+        }
+    }
+
+    fn rendered(&mut self, _ctx: &Context<Self>, _first_render: bool) {
+        if let Some(el) = self.output_ref.cast::<HtmlElement>() {
+            el.set_scroll_top(el.scroll_height());
         }
     }
 
@@ -447,7 +456,9 @@ impl Component for App {
                     <div class="panel panel-bl">
                         <div class="panel-header">{"Output"}</div>
                         <div class="panel-body">
-                            <div class="output-text">{ &self.output }</div>
+                            <div class="output-text" ref={self.output_ref.clone()}>
+                                { &self.output }
+                            </div>
                         </div>
                         <div class="uart-input">
                             <input class="uart-field" type="text"

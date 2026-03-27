@@ -148,6 +148,7 @@ header .subtitle {
     border-radius: 4px;
     flex: 1;
     min-height: 40px;
+    overflow-y: auto;
 }
 
 .uart-input {
