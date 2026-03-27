@@ -1,0 +1,384 @@
+Web-P24C — Browser-Based Pascal Compiler IDE for COR24
+======================================================
+
+Purpose
+-------
+
+A browser-based IDE for writing, compiling, linking, assembling, and
+running Pascal programs on the COR24 p-code virtual machine.  Everything
+runs in the browser via WASM — no server-side compilation.
+
+The user selects a demo Pascal program, views its source and pre-compiled
+p-code assembly side by side, and clicks Run to execute it on the emulator.
+The emulator shows UART I/O, LED state, switch input, and execution status.
+
+For the MVP, Pascal source is READ-ONLY.  The compiler (p24p) only runs
+at the command line, not in the browser.  Demo programs are pre-compiled
+to .spc at build time (or checked in as .spc files).  The browser handles
+linking (pl24r), assembly (pa24r), and execution (pvm.s on cor24-rs).
+
+Running the compiler/linker/assembler entirely in the browser is a
+future goal that requires either rewriting p24p in Rust or compiling
+it to WASM via the COR24 emulator.
+
+
+Architecture
+------------
+
+- Rust + Yew 0.21 + WebAssembly (same stack as web-dv24r, web-tf24a)
+- Trunk for WASM build and dev server
+- All compilation, linking, and assembly happen in WASM at native-ish speed
+- The COR24 emulator (cor24-rs) runs pvm.s (p-code VM) with pre-assembled
+  binary loaded at build time (same pattern as web-dv24r)
+- p-code programs are loaded into emulator memory at a safe address
+  (0x010000) above the VM's data regions, with data reference relocation
+
+
+Toolchain Dependencies (All Rust Crates)
+-----------------------------------------
+
+| Crate | Role | Path |
+|-------|------|------|
+| cor24-emulator | COR24 emulator (EmulatorCore) | ~/github/sw-embed/cor24-rs |
+| pa24r | P-code assembler (.spc → .p24) | ~/github/softwarewrighter/pa24r |
+| pl24r | P-code linker (merge .spc files) | ~/github/softwarewrighter/pl24r |
+| p24p | Pascal compiler (.pas → .spc) | ~/github/softwarewrighter/p24p |
+
+NOTE: p24p is a C program compiled by tc24r for COR24.  It runs at the
+command line, NOT in the browser.  Demo .spc files are pre-compiled
+from .pas source using p24p and checked into the project (or generated
+at build time if p24p is available on the build machine).
+
+For the MVP, the browser only does linking (pl24r) + assembly (pa24r)
++ execution (pvm.s).  No compilation in the browser.
+
+Future: rewrite p24p in Rust as a library crate for in-browser
+compilation.  This would enable editable Pascal source and a [Compile]
+button.
+
+pl24r is already a Rust library crate — use it directly in WASM.
+pa24r is already a Rust library crate — use it directly in WASM.
+
+The runtime library (pr24p) is a set of .spc files.  Embed them via
+include_str!() and feed to pl24r along with the demo's .spc.
+
+
+UI Layout
+---------
+
++------------------------------------------------------------------+
+| Pascal Compiler IDE                               COR24-P24C     |
++------------------------------------------------------------------+
+| [Demo...v]  [Link & Run]  [Stop]              Ready | Running | X |
++------------------------------------------------------------------+
+|                          |                                        |
+|   PASCAL SOURCE          |   P-CODE ASSEMBLY (.spc)               |
+|   (read-only display)    |   (read-only, scrollable)              |
+|                          |                                        |
+|   program Hello;         |   .module hello                        |
+|   begin                  |   .export main                         |
+|     writeln(42)          |   .extern _p24p_write_int              |
+|   end.                   |   .extern _p24p_write_ln               |
+|                          |                                        |
+|                          |   .proc main 0                         |
+|                          |       push 42                          |
+|                          |       call _p24p_write_int             |
+|                          |       call _p24p_write_ln              |
+|                          |       halt                             |
+|                          |   .end                                 |
+|                          |                                        |
++--------------------------+----------------------------------------+
+|                          |                                        |
+|   OUTPUT                 |   HARDWARE                             |
+|   (UART TX display)      |                                        |
+|   > 42                   |   LED [D2]: ( ) off / (*) on           |
+|   >                      |   Switch [S2]: [ Toggle ]              |
+|                          |                                        |
+|   UART Input:            |   Binary: 64 bytes (.p24)              |
+|   [_______________][Send]|   Instrs: 3,239                        |
+|                          |                                        |
++--------------------------+----------------------------------------+
+| MIT License · © 2026 Michael A Wright · COR24-P24C · abc1234     |
++------------------------------------------------------------------+
+
+
+Panel Descriptions
+------------------
+
+1. PASCAL SOURCE (left, top)
+   - Read-only <pre> display with monospace font
+   - Demo selector populates this panel with the demo's Pascal source
+   - NOT editable — compiler runs at command line, not in browser
+   - Shows the source that produced the .spc in the right panel
+   - Catppuccin Mocha dark theme
+
+2. P-CODE ASSEMBLY (right, top)
+   - Read-only display of .spc output from the compiler
+   - Populated when user clicks [Compile]
+   - Shows the compiler's .spc output for the current Pascal source
+   - If compilation fails, show error messages here instead
+   - Scrollable, monospace
+
+3. OUTPUT (left, bottom)
+   - UART TX output from the running program
+   - Cleared on each Run
+   - UART input field + Send button for interactive programs (getc)
+
+4. HARDWARE (right, bottom)
+   - LED D2: visual indicator, on/off circle (sys 3 opcode)
+   - Switch S2: toggle button (emulator button input)
+   - Binary size: shows .p24 byte count after Link
+   - Instruction count: COR24 instructions executed
+
+5. STATUS BAR (top right)
+   - Ready: compiled and linked, waiting for Run
+   - Running: emulator executing (Run button becomes Stop)
+   - Exited: program halted (via sys halt or trap)
+
+
+Button Flow
+-----------
+
+[Demo...] — Select a demo program.
+            1. Populate Pascal source panel (read-only) with .pas source
+            2. Populate P-Code Assembly panel with pre-compiled .spc
+            Both .pas and .spc are embedded via include_str!()
+            Does NOT link or run automatically.
+
+[Link & Run] — Link, assemble, load, and execute.
+            1. Take pre-compiled .spc from the selected demo
+            2. Combine with runtime .spc (pr24p, embedded via include_str!)
+            3. Run pl24r to merge (Rust library call, fast in WASM)
+            4. Run pa24r to assemble → .p24 (Rust library call, fast)
+            5. Show binary size in Hardware panel
+            6. Load pre-assembled pvm.s into emulator (from build time)
+            7. Load .p24 binary into emulator memory at 0x010000
+            8. Relocate data references (push instructions)
+            9. Run pvm.s init, then patch code_base
+            10. Start batch execution (50K instrs/tick, 25ms yield)
+            11. Status → Running
+            12. Button becomes [Stop]
+
+[Stop]    — Pause execution
+            1. Stop the tick timer
+            2. Pause emulator
+            3. Status → Exited (or Ready if not halted)
+
+Note: Compile is NOT a button.  Compilation happens at the command line
+using p24p.  The .spc files are pre-compiled and embedded in the binary.
+Future: when p24p is available as a Rust/WASM library, add a [Compile]
+button and make the Pascal source panel editable.
+
+
+Demo Programs
+-------------
+
+Each demo consists of a .pas file (Pascal source, displayed read-only)
+and a .spc file (pre-compiled p-code assembly, displayed read-only).
+Both are embedded via include_str!().  The .spc is compiled from .pas
+at the command line using p24p before building web-p24c.
+
+1. Hello World
+   program Hello;
+   begin
+     writeln(42)
+   end.
+   Expected output: 42\n
+
+2. Countdown
+   program Countdown;
+   var i: integer;
+   begin
+     i := 5;
+     while i > 0 do begin
+       writeln(i);
+       i := i - 1
+     end
+   end.
+   Expected output: 5\n4\n3\n2\n1\n
+
+3. LED Blink (when sys LED is available)
+   program Blink;
+   begin
+     while true do begin
+       led(1);
+       { delay }
+       led(0);
+       { delay }
+     end
+   end.
+
+4. Echo
+   program Echo;
+   var c: integer;
+   begin
+     c := getc;
+     while c <> 113 do begin  { 'q' to quit }
+       putc(c);
+       c := getc
+     end
+   end.
+
+
+Loading the VM (Same Pattern as web-dv24r)
+-------------------------------------------
+
+pvm.s (the p-code VM in COR24 assembly) is pre-assembled at build time
+in build.rs using cor24-emulator's Assembler.  The binary and key label
+addresses are embedded via include_bytes!/include!.
+
+At runtime in WASM:
+1. Init: load pvm.s binary into EmulatorCore, resolve label addresses
+2. On Run: load .p24 at 0x010000, relocate data refs, run pvm.s init
+   (halt at code_seg), reset, set PC=vm_loop, fp=vm_state, patch
+   code_base/pc/status in vm_state, resume
+
+See web-dv24r's load_p24_image() and apply_pending_code_base() for the
+exact implementation.  The loader must:
+- Write code+data contiguously at load_addr (0x010000)
+- Scan for push (0x01) instructions with IMM24 operands pointing into
+  the data segment (>= code_size, < code_size + data_size)
+- Relocate those operands by adding load_addr (absolute addressing)
+- Write sys halt (0x60 0x00) at code_seg label
+- Run pvm.s init (~261 COR24 instructions)
+- reset() to clear halted flag (preserves memory)
+- Set COR24 PC = vm_loop, fp = vm_state
+- Patch vm_state: code=load_addr, pc=0, status=0
+- Resume and run batches
+
+Data relocation is needed because pvm.s's loadb/load/store opcodes
+use ABSOLUTE memory addresses, not code-base-relative.
+
+
+Batch Execution (Browser-Friendly)
+------------------------------------
+
+- 50,000 COR24 instructions per tick
+- 25ms between ticks (yields to browser render thread)
+- On each tick: feed UART bytes, run batch, collect UART output,
+  check for halt/trap
+- This prevents browser tab from becoming unresponsive
+
+
+Catppuccin Mocha Theme
+-----------------------
+
+Same dark theme as web-dv24r and other COR24 web tools:
+- Base: #1e1e2e
+- Surface: #313244
+- Text: #cdd6f4
+- Green (success): #a6e3a1
+- Red (error): #f38ba8
+- Yellow (warning): #f9e2af
+- Blue (info): #89b4fa
+- Mauve (accent): #cba6f7
+
+See web-dv24r's index.html and debugger.css for the complete theme.
+
+
+Build Configuration
+-------------------
+
+Cargo.toml dependencies:
+  cor24-emulator = { path = "../../sw-embed/cor24-rs", default-features = false }
+  pa24r = { path = "../../softwarewrighter/pa24r" }
+  yew = { version = "0.21", features = ["csr"] }
+  wasm-bindgen = "0.2"
+  web-sys = { version = "0.3", features = [...] }
+  gloo = "0.11"
+  console_error_panic_hook = "0.1"
+
+Build-dependencies (for pre-assembling pvm.s):
+  cor24-emulator = { path = "../../sw-embed/cor24-rs", default-features = false }
+
+Note: pl24r and pa24r are used at RUNTIME in WASM (linking and assembling
+happen when user clicks Link).  cor24-emulator's Assembler is only used
+at BUILD TIME (to pre-assemble pvm.s).
+
+Rust edition 2024.  Trunk for WASM build.
+
+Build commands:
+  trunk build                    # Build WASM to dist/
+  trunk serve --port 9199        # Dev server (use different port from web-dv24r 9198)
+  cargo clippy --all-targets --all-features -- -D warnings
+  cargo fmt --all
+
+
+Pattern References
+------------------
+
+Study these projects for implementation patterns:
+
+  ~/github/softwarewrighter/web-dv24r   P-code debugger (CLOSEST pattern)
+    - build.rs: pre-assembles pvm.s, pre-assembles .spc demos
+    - config.rs: PVM_BINARY, label_addr()
+    - debugger.rs: load_p24_image(), apply_pending_code_base(),
+      batch execution, UART I/O, EmulatorCore usage
+    - demos.rs: include_bytes!() for pre-assembled .p24
+
+  ~/github/sw-vibe-coding/web-tf24a    Forth debugger
+    - Simplest Yew + EmulatorCore pattern
+    - Demo loading via UART, batch execution
+
+  ~/github/sw-vibe-coding/web-tc24r    C compiler UI
+    - Closest UI pattern (editor + compiler output + run)
+    - Has compile/run flow similar to what we need
+
+  ~/github/sw-vibe-coding/web-tml24c   Lisp REPL
+    - Tiered demo system, memory gauges
+
+
+Related Projects
+----------------
+
+  ~/github/softwarewrighter/p24p      Pascal compiler (C, runs on COR24)
+  ~/github/softwarewrighter/pr24p     Pascal runtime (.spc files)
+  ~/github/softwarewrighter/pl24r     P-code linker (Rust library)
+  ~/github/softwarewrighter/pa24r     P-code assembler (Rust library)
+  ~/github/sw-vibe-coding/pv24a       P-code VM (COR24 assembly)
+  ~/github/sw-embed/cor24-rs          COR24 assembler + emulator
+
+
+Wiki Coordination
+-----------------
+
+This project participates in multi-agent coordination via wiki at
+http://localhost:7402.  See docs/agent-cas-wiki.md (copy from web-dv24r)
+for the API reference.
+
+Key wiki pages:
+  [[MVP]]                  Current goal: Pascal Hello World at speed
+  [[P24Toolchain]]         Pipeline overview
+  [[PA24RSpec]]             P-code assembler spec
+  [[COR24Architecture]]    Full architecture with mermaid diagrams
+  [[AgentToAgentRequests]]  Cross-component dependency tracking
+  [[AgentStatus]]           Who's online
+
+On session start: read [[AgentToAgentRequests]] and [[AgentStatus]].
+Update your status.  File requests for anything you need from other
+agents.
+
+
+MVP Scope
+---------
+
+For the first working version:
+1. Read-only Pascal source display (demo programs only)
+2. Read-only .spc display (pre-compiled, embedded)
+3. Link via pl24r Rust library in WASM (fast)
+4. Assemble via pa24r Rust library in WASM (fast)
+5. Run via pvm.s on cor24-rs emulator (fast, pre-assembled at build time)
+6. UART output display + input field
+7. LED D2 indicator and S2 switch toggle
+8. Execution status (Ready/Running/Exited)
+9. 3-4 demo programs with .pas + .spc pairs
+10. Binary size and instruction count display
+
+Deferred:
+- Editable Pascal source (needs p24p in browser)
+- [Compile] button (needs p24p as Rust crate or WASM)
+- Syntax highlighting
+- Pascal compiler in Rust (replaces C-based p24p)
+- File upload/download
+- Source-level debugging (needs debug info in .p24)
+- Multiple file support (user libraries)
