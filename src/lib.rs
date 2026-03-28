@@ -554,8 +554,8 @@ impl Component for App {
                 self.instruction_count += result.instructions_run;
                 self.collect_uart();
 
-                let led_byte = self.emulator.read_byte(0xFF0200);
-                self.led_on = led_byte != 0;
+                // COR24 LED D2 is active-low: bit 0 == 0 means ON
+                self.led_on = self.emulator.get_led() & 1 == 0;
 
                 self.check_halted(result.reason);
 

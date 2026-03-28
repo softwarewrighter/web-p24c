@@ -83,4 +83,10 @@ pub const DEMOS: &[Demo] = &[
         pas_source: include_str!("../demos/stdlib.pas"),
         spc_source: include_str!("../demos/stdlib.spc"),
     },
+    Demo {
+        name: "LED On",
+        description: "Turn on LED D2 (active-low: SetLED(0))",
+        pas_source: include_str!("../demos/led_on.pas"),
+        spc_source: include_str!("../demos/led_on.spc"),
+    },
 ];
