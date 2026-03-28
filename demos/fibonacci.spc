@@ -1,4 +1,4 @@
-.module countdown
+.module fibonacci
 .extern _p24p_write_int
 .extern _p24p_write_bool
 .extern _p24p_write_str
@@ -15,24 +15,45 @@
 .extern _p24p_read_ln
 .extern _p24p_write_char
 .export main
-; p24p output: countdown
+; p24p output: fibonacci
+.global f1 1
+.global f2 1
+.global f3 1
 .global i 1
 
 .proc main 0
     enter 0
-    push 5
+    push 0
+    storeg f1
+    push 1
+    storeg f2
+    loadg f1
+    call _p24p_write_int
+    call _p24p_write_ln
+    loadg f2
+    call _p24p_write_int
+    call _p24p_write_ln
+    push 3
     storeg i
 L0:
     loadg i
-    push 0
-    gt
+    push 10
+    le
     jz L1
-    loadg i
+    loadg f1
+    loadg f2
+    add
+    storeg f3
+    loadg f3
     call _p24p_write_int
     call _p24p_write_ln
+    loadg f2
+    storeg f1
+    loadg f3
+    storeg f2
     loadg i
     push 1
-    sub
+    add
     storeg i
     jmp L0
 L1:

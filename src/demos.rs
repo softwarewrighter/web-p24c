@@ -29,4 +29,28 @@ pub const DEMOS: &[Demo] = &[
         pas_source: include_str!("../demos/countdown.pas"),
         spc_source: include_str!("../demos/countdown.spc"),
     },
+    Demo {
+        name: "Fibonacci",
+        description: "First 10 Fibonacci numbers",
+        pas_source: include_str!("../demos/fibonacci.pas"),
+        spc_source: include_str!("../demos/fibonacci.spc"),
+    },
+    Demo {
+        name: "Primes",
+        description: "Prime numbers up to 20",
+        pas_source: include_str!("../demos/primes.pas"),
+        spc_source: include_str!("../demos/primes.spc"),
+    },
+    Demo {
+        name: "Collatz",
+        description: "Collatz sequence from 27 (111 steps)",
+        pas_source: include_str!("../demos/collatz.pas"),
+        spc_source: include_str!("../demos/collatz.spc"),
+    },
+    Demo {
+        name: "For Loop",
+        description: "Sum 1..10, then count down 5 to 1",
+        pas_source: include_str!("../demos/forloop.pas"),
+        spc_source: include_str!("../demos/forloop.spc"),
+    },
 ];
