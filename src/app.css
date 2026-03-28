@@ -319,6 +319,58 @@ header .subtitle {
     color: var(--text);
 }
 
+/* Discard dialog */
+.dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+.dialog-box {
+    background: var(--surface0);
+    border: 1px solid var(--surface2);
+    border-radius: 8px;
+    padding: 20px 24px;
+    min-width: 320px;
+    max-width: 400px;
+}
+
+.dialog-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--yellow);
+    margin-bottom: 8px;
+}
+
+.dialog-body {
+    font-size: 13px;
+    color: var(--subtext1);
+    margin-bottom: 16px;
+    line-height: 1.4;
+}
+
+.dialog-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.dialog-cancel {
+    color: var(--text);
+}
+
+.dialog-confirm {
+    color: var(--red);
+    border-color: var(--red);
+}
+
 /* Footer */
 footer {
     display: flex;

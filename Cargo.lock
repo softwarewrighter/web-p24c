@@ -1139,6 +1139,7 @@ dependencies = [
  "console_error_panic_hook",
  "cor24-emulator",
  "gloo 0.11.0",
+ "js-sys",
  "pa24r",
  "pl24r",
  "wasm-bindgen",

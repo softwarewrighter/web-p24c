@@ -52,6 +52,9 @@ pub enum Msg {
     InputKeyDown(KeyboardEvent),
     EditSource(String),
     SwitchMode(AppMode),
+    ConfirmDiscard,
+    CancelDiscard,
+    DialogKeyDown(KeyboardEvent),
 }
 
 pub struct App {
@@ -79,6 +82,12 @@ pub struct App {
     compiled_spc: String,
     compiler_emu: Option<EmulatorCore>,
     compiler_rx_queue: VecDeque<u8>,
+    // Timing
+    compile_start_ms: f64,
+    compile_time_ms: f64,
+    // Discard confirmation
+    show_discard_dialog: bool,
+    source_dirty: bool,
 }
 
 impl App {
@@ -267,11 +276,15 @@ impl App {
         self.compiler_emu = Some(emu);
         self.compiler_rx_queue = rx_queue;
         self.compiled_spc.clear();
+        self.compile_start_ms = js_sys::Date::now();
+        self.compile_time_ms = 0.0;
         self.status = AppStatus::Compiling;
         self.schedule_compiler_tick(ctx);
     }
 
     fn finish_compilation(&mut self, ctx: &Context<Self>) -> bool {
+        self.compile_time_ms = js_sys::Date::now() - self.compile_start_ms;
+
         // Check if compilation produced an error
         if self.compiled_spc.contains("; COMPILE ERROR") || self.compiled_spc.contains("; ERROR:") {
             self.output = format!("Compilation failed:\n{}", self.compiled_spc);
@@ -339,6 +352,10 @@ impl Component for App {
             compiled_spc: String::new(),
             compiler_emu: None,
             compiler_rx_queue: VecDeque::new(),
+            compile_start_ms: 0.0,
+            compile_time_ms: 0.0,
+            show_discard_dialog: false,
+            source_dirty: false,
         }
     }
 
@@ -346,6 +363,14 @@ impl Component for App {
         match msg {
             Msg::SwitchMode(new_mode) => {
                 if self.mode != new_mode {
+                    // Switching away from edit mode with dirty edits?
+                    if self.mode == AppMode::Compile
+                        && new_mode == AppMode::Demo
+                        && self.source_dirty
+                    {
+                        self.show_discard_dialog = true;
+                        return true;
+                    }
                     self.mode = new_mode;
                     // Stop any running execution
                     self.running = false;
@@ -357,13 +382,45 @@ impl Component for App {
                     self.instruction_count = 0;
                     self.binary_size = 0;
                     self.status = AppStatus::Ready;
+                    self.compile_time_ms = 0.0;
                     if new_mode == AppMode::Compile {
                         // Initialize editor with current demo source
                         let demo = &DEMOS[self.selected];
                         self.edit_source = demo.pas_source.to_string();
+                        self.source_dirty = false;
                     }
                 }
                 true
+            }
+
+            Msg::ConfirmDiscard => {
+                self.show_discard_dialog = false;
+                self.source_dirty = false;
+                self.mode = AppMode::Demo;
+                self.running = false;
+                self.halted = false;
+                self._tick_handle = None;
+                self.compiler_emu = None;
+                self.output.clear();
+                self.compiled_spc.clear();
+                self.instruction_count = 0;
+                self.binary_size = 0;
+                self.status = AppStatus::Ready;
+                self.compile_time_ms = 0.0;
+                true
+            }
+
+            Msg::CancelDiscard => {
+                self.show_discard_dialog = false;
+                true
+            }
+
+            Msg::DialogKeyDown(e) => {
+                if e.key() == "Escape" {
+                    self.show_discard_dialog = false;
+                    return true;
+                }
+                false
             }
 
             Msg::SelectDemo(idx) => {
@@ -379,14 +436,17 @@ impl Component for App {
                     self.binary_size = 0;
                     self.status = AppStatus::Ready;
                     self.pending_code_base = None;
+                    self.compile_time_ms = 0.0;
                     if self.mode == AppMode::Compile {
                         self.edit_source = DEMOS[idx].pas_source.to_string();
+                        self.source_dirty = false;
                     }
                 }
                 true
             }
 
             Msg::EditSource(src) => {
+                self.source_dirty = src != DEMOS[self.selected].pas_source;
                 self.edit_source = src;
                 false
             }
@@ -751,10 +811,44 @@ impl Component for App {
                                         { self.instruction_count.to_string() }
                                     </span>
                                 </div>
+                                if self.compile_time_ms > 0.0 {
+                                    <div class="hw-row">
+                                        <span class="hw-stat">{"Compile: "}</span>
+                                        <span class="hw-stat-val">
+                                            { format!("{:.0} ms", self.compile_time_ms) }
+                                        </span>
+                                    </div>
+                                }
                             </div>
                         </div>
                     </div>
                 </div>
+
+                if self.show_discard_dialog {
+                    <div class="dialog-overlay"
+                         onclick={link.callback(|_| Msg::CancelDiscard)}
+                         onkeydown={link.callback(Msg::DialogKeyDown)}
+                         tabindex="-1">
+                        <div class="dialog-box"
+                             onclick={Callback::from(|e: MouseEvent| e.stop_propagation())}
+                        >
+                            <div class="dialog-title">{"Discard Edits?"}</div>
+                            <div class="dialog-body">
+                                {"Your changes to the Pascal source will be lost."}
+                            </div>
+                            <div class="dialog-buttons">
+                                <button class="btn dialog-cancel"
+                                        onclick={link.callback(|_| Msg::CancelDiscard)}>
+                                    {"Cancel"}
+                                </button>
+                                <button class="btn dialog-confirm"
+                                        onclick={link.callback(|_| Msg::ConfirmDiscard)}>
+                                    {"Discard"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
 
                 <footer>
                     <span>{"MIT License"}</span>
