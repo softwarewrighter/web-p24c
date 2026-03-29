@@ -13,7 +13,7 @@ web-p24c displays Pascal source and pre-compiled p-code assembly side by side. T
 
 Linking uses [pl24r](https://github.com/softwarewrighter/pl24r), assembly uses [pa24r](https://github.com/softwarewrighter/pa24r), and execution runs on the COR24 emulator via WASM. No server-side compilation.
 
-12 demos: Hello World, Countdown, Fibonacci, Primes, Collatz, For Loop, Factorial, Even/Odd, Powers of 2, Write, Std Library, and LED On.
+13 demos including hardware I/O: Button LED (switch-polling to light LED D2), LED On, and algorithmic demos (Fibonacci, Primes, Collatz, Factorial, etc.).
 
 Built with Rust, Yew 0.21, and Trunk. Runs entirely in the browser as a WASM application.
 

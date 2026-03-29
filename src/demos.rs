@@ -24,6 +24,12 @@ pub const DEMOS: &[Demo] = &[
         spc_source: include_str!("../demos/collatz.spc"),
     },
     Demo {
+        name: "Button LED",
+        description: "Press S2 switch to light LED D2",
+        pas_source: include_str!("../demos/button_led.pas"),
+        spc_source: include_str!("../demos/button_led.spc"),
+    },
+    Demo {
         name: "Countdown",
         description: "Count down from 5 to 1",
         pas_source: include_str!("../demos/countdown.pas"),
