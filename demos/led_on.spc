@@ -15,15 +15,15 @@
 .extern _p24p_eof
 .extern _p24p_eoln
 .extern _p24p_write_char
-.extern _p24p_set_led
+.extern _p24p_led_on
+.extern _p24p_led_off
 .extern _p24p_read_switch
 .export main
 ; p24p output: ledon
 
 .proc main 0
     enter 0
-    push 1
-    call _p24p_set_led
+    call _p24p_led_on
     push S0
     call _p24p_write_str
     call _p24p_write_ln

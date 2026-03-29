@@ -1,6 +1,6 @@
 program LedOn;
 uses Hardware;
 begin
-  SetLED(1);
+  LedOn;
   writeln('LED on')
 end.
