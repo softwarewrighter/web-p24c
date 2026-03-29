@@ -75,6 +75,7 @@ pub struct App {
     uart_rx_queue: VecDeque<u8>,
     _tick_handle: Option<Timeout>,
     output_ref: NodeRef,
+    input_ref: NodeRef,
     pending_code_base: Option<u32>,
     vm_state_addr: u32,
     vm_loop_addr: u32,
@@ -352,6 +353,7 @@ impl Component for App {
             uart_rx_queue: VecDeque::new(),
             _tick_handle: None,
             output_ref: NodeRef::default(),
+            input_ref: NodeRef::default(),
             pending_code_base: None,
             vm_state_addr: label_addr("vm_state"),
             vm_loop_addr: label_addr("vm_loop"),
@@ -618,6 +620,9 @@ impl Component for App {
         if let Some(el) = self.output_ref.cast::<HtmlElement>() {
             el.set_scroll_top(el.scroll_height());
         }
+        if let Some(el) = self.input_ref.cast::<HtmlElement>() {
+            let _ = el.focus();
+        }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
@@ -821,6 +826,7 @@ impl Component for App {
                                 <span class="hw-io-label">{"UART Input"}</span>
                                 <div class="uart-input-row">
                                     <input class="uart-field" type="text"
+                                           ref={self.input_ref.clone()}
                                            placeholder="Type here, press Enter or Send..."
                                            value={self.uart_input.clone()}
                                            oninput={on_input}

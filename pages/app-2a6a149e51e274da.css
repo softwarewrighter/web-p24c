@@ -331,7 +331,7 @@ header .subtitle {
 /* Hardware UART I/O */
 .hw-io {
     display: flex;
-    gap: 0;
+    flex-direction: column;
     flex: 1;
     min-height: 0;
     overflow: hidden;
@@ -341,17 +341,16 @@ header .subtitle {
     flex: 1;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid var(--surface1);
     min-height: 0;
     overflow: hidden;
 }
 
 .hw-uart-input {
-    flex: 0 0 auto;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    padding: 8px 12px;
-    min-width: 300px;
+    padding: 4px 12px 8px;
+    border-top: 1px solid var(--surface1);
 }
 
 .hw-io-label {

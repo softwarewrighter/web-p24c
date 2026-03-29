@@ -89,6 +89,9 @@ function __wbg_get_imports() {
                 wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
             }
         },
+        __wbg_focus_885197ce680db9e0: function() { return handleError(function (arg0) {
+            arg0.focus();
+        }, arguments); },
         __wbg_from_4bdf88943703fd48: function(arg0) {
             const ret = Array.from(arg0);
             return ret;
