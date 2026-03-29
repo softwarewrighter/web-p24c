@@ -18,16 +18,16 @@ pub const RUNTIME_SPC: &str = include_str!("../../pr24p/src/runtime.spc");
 /// Available demo programs (alphabetical order).
 pub const DEMOS: &[Demo] = &[
     Demo {
-        name: "Collatz",
-        description: "Collatz sequence from 27 (111 steps)",
-        pas_source: include_str!("../demos/collatz.pas"),
-        spc_source: include_str!("../demos/collatz.spc"),
-    },
-    Demo {
         name: "Button LED",
         description: "Press S2 switch to light LED D2",
         pas_source: include_str!("../demos/button_led.pas"),
         spc_source: include_str!("../demos/button_led.spc"),
+    },
+    Demo {
+        name: "Collatz",
+        description: "Collatz sequence from 27 (111 steps)",
+        pas_source: include_str!("../demos/collatz.pas"),
+        spc_source: include_str!("../demos/collatz.spc"),
     },
     Demo {
         name: "Countdown",

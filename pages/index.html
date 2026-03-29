@@ -4,10 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pascal Demos — COR24</title>
+    <link rel="icon" href="/web-p24c/favicon-8880d906764adf10.ico" integrity="sha384-TjGnxzcKuaOzggc2R3zvLtVUSD3hhm66neSmx+da6UB7B//h2m9Bz3Tns7O/5vG2"/>
     
 <script type="module">
-import init, * as bindings from '/web-p24c/web-p24c-9fa5abe0a5ffc49b.js';
-const wasm = await init({ module_or_path: '/web-p24c/web-p24c-9fa5abe0a5ffc49b_bg.wasm' });
+import init, * as bindings from '/web-p24c/web-p24c-a17a2a05c64ce2ce.js';
+const wasm = await init({ module_or_path: '/web-p24c/web-p24c-a17a2a05c64ce2ce_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -85,7 +86,7 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
             40%, 80% { transform: rotate(10deg); }
         }
     </style>
-<link rel="modulepreload" href="/web-p24c/web-p24c-9fa5abe0a5ffc49b.js" crossorigin="anonymous" integrity="sha384-7jd+D9l7le8bQAWFqyuqMbyYuAcI3/Y48ztgpNPJOLkf2YHs+qqtAGxfBsCC8rTI"><link rel="preload" href="/web-p24c/web-p24c-9fa5abe0a5ffc49b_bg.wasm" crossorigin="anonymous" integrity="sha384-jIRmlQawD4chF4aVbZYMPW8ArCcYqhAc1IP0jwvY09MeK7hsN1e0p5Pc47d7C1e3" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/web-p24c/web-p24c-a17a2a05c64ce2ce.js" crossorigin="anonymous" integrity="sha384-7jd+D9l7le8bQAWFqyuqMbyYuAcI3/Y48ztgpNPJOLkf2YHs+qqtAGxfBsCC8rTI"><link rel="preload" href="/web-p24c/web-p24c-a17a2a05c64ce2ce_bg.wasm" crossorigin="anonymous" integrity="sha384-ix13AywAyRv3fGuLjcSjMfJNgkkVLdKJXDCUElBJN8jR+SCV7Xl7o5c6ZhDgcPwe" as="fetch" type="application/wasm"></head>
 <body>
     <div id="app"></div>
 </body>
